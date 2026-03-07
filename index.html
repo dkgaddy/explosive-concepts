@@ -31,7 +31,7 @@
       position: fixed; inset: 0; z-index: 4; pointer-events: none;
       background: radial-gradient(ellipse at center,
         transparent 50%, rgba(0,0,0,0.75) 100%);
-    }
+    } 
 
     /* ── Scattered dot overlay ── */
     .dot-overlay {
@@ -175,14 +175,13 @@
   </svg>
 
   <!-- ── Dark overlay ── -->
-  <div style="position:fixed;inset:0;background:rgba(0,0,0,0.52);z-index:1;"></div>
+  <div style="position:fixed;inset:0;background:rgba(0,0,0,0.35);z-index:1;"></div>
 
   <!-- ── Dot grid ── -->
   <div class="dot-overlay"></div>
 
   <!-- ── Scanlines + vignette ── -->
   <div class="scanlines"></div>
-  <div class="vignette"></div>
 
   <!-- ── Main layout ── -->
   <div style="position:relative;z-index:10;height:100vh;display:flex;align-items:center;justify-content:center;padding:32px 24px;">
@@ -255,7 +254,7 @@ CONCEPTS</h1>
 
     const C    = a => `rgba(111,255,122,${a})`;
     const MONO = "'Space Mono',monospace";
-    const LA   = { 'font-family': MONO, 'font-size': '9', 'letter-spacing': '2', fill: C(0.45) };
+    const LA   = { 'font-family': MONO, 'font-size': '9', 'letter-spacing': '2', fill: C(0.75) };
 
     // ── Layout zones ──────────────────────────────────
     // Center column is a fixed reservation; side columns fill the remainder.
@@ -294,7 +293,7 @@ CONCEPTS</h1>
     const auxX   = RX + globeW + 5;
     const gcR    = Math.min(globeW * 0.44, 88, (glbSecH - 30) / 2);
     const gcx    = RX + globeW * 0.5;
-    const gcy    = glbSecY + 14 + gcR;
+    const gcy    = glbSecY + Math.round(glbSecH / 2);
 
     // ── TOP STATUS BAR ────────────────────────────────
     function initTopBar() {
@@ -324,7 +323,7 @@ CONCEPTS</h1>
       const px = LX, py = pcbY, pw = LPW, ph = pcbH;
       const g  = mk('g', {}, svg);
       tx(px, py - 9, 'PCB SCHEMATIC', LA, g);
-      mk('rect', {x:px, y:py, width:pw, height:ph, fill:'none', stroke:C(0.18), 'stroke-width':'1'}, g);
+      mk('rect', {x:px, y:py, width:pw, height:ph, fill:'none', stroke:C(0.65), 'stroke-width':'1.5'}, g);
       const tg = mk('g', {}, g);
       const CW = Math.round(pw * 0.14);
       const MX = px + CW + 3, MW = pw - CW - 5;
@@ -391,12 +390,14 @@ CONCEPTS</h1>
 
     // ── NETWORK TOPOLOGY (left panel, 2nd widget) ─────
     function initNetworkMap() {
-      if (LW < 145 || fanH < 60) return;
-      const fw = LPW, fh = fanH;
-      const fx = LX, fy = fanY;
+      // Draws in the center-top zone (where terminal used to live)
+      const fw = Math.round(Math.min(HERO_ZONE * 0.78, 520));
+      const fh = 155;
+      const fx = Math.round(W / 2 - fw / 2);
+      const fy = TOP + 2;
       const g  = mk('g', {}, svg);
       tx(fx, fy - 8, 'NETWORK TOPOLOGY', LA, g);
-      mk('rect', {x:fx, y:fy, width:fw, height:fh, fill:C(0.015), stroke:C(0.22), 'stroke-width':'1'}, g);
+      mk('rect', {x:fx, y:fy, width:fw, height:fh, fill:C(0.04), stroke:C(0.65), 'stroke-width':'1.5'}, g);
 
       // Subtle dot grid background
       for (let gx2 = fx+10; gx2 < fx+fw-4; gx2 += 14)
@@ -488,7 +489,7 @@ CONCEPTS</h1>
       const bcy = glbSecY + glbSecH * 0.44;
       const g   = mk('g', {}, svg);
       mk('rect', {x:auxX, y:glbSecY, width:auxW, height:glbSecH,
-        fill:C(0.015), stroke:C(0.18), 'stroke-width':'1'}, g);
+        fill:C(0.04), stroke:C(0.65), 'stroke-width':'1.5'}, g);
       tx(auxX, glbSecY - 2, 'HEADING', LA, g);
 
       // Rings
@@ -562,7 +563,7 @@ CONCEPTS</h1>
 
       const g = mk('g', {}, svg);
       mk('rect', {x:dwX, y:dwY, width:dwW, height:dwH,
-        fill:C(0.015), stroke:C(0.22), 'stroke-width':'1'}, g);
+        fill:C(0.04), stroke:C(0.65), 'stroke-width':'1.5'}, g);
       tx(dwX, dwY - 8, 'DEORBITAL DESCENT', LA, g);
 
       // Header strip
@@ -657,7 +658,7 @@ CONCEPTS</h1>
       if (LW < 90 || telH < 50) return;
       const g = mk('g', {}, svg);
       tx(LX, telY - 9, 'SYSTEM TELEMETRY', LA, g);
-      mk('rect', {x:LX, y:telY, width:LPW, height:telH, fill:'none', stroke:C(0.14), 'stroke-width':'1'}, g);
+      mk('rect', {x:LX, y:telY, width:LPW, height:telH, fill:'none', stroke:C(0.65), 'stroke-width':'1.5'}, g);
       const DATA = [
         ['FLUX CAPACITOR',  () => rnd(1.18,1.23).toFixed(2)+' GW'],
         ['DILITHIUM RES',   () => rnd(94.1,99.9).toFixed(1)+'%'],
@@ -670,14 +671,14 @@ CONCEPTS</h1>
         ['BABEL FISH',      () => 'SYNC'],
         ['TARGETING CPU',   () => Math.random()>.08 ? 'ONLINE' : 'OFFLINE'],
       ];
-      const LH2 = 19, rows = [];
+      const LH2 = 22, rows = [];
       const maxRows = Math.floor((telH - 10) / LH2);
       for (let i = 0; i < Math.min(maxRows, DATA.length); i++) {
-        const ry = telY + 14 + i * LH2;
-        mk('line', {x1:LX+2, y1:ry+3, x2:LX+LPW-2, y2:ry+3, stroke:C(0.1), 'stroke-width':'0.5'}, g);
-        tx(LX+5, ry, DATA[i][0], {'font-family':MONO,'font-size':'9',fill:C(0.45)}, g);
+        const ry = telY + 16 + i * LH2;
+        mk('line', {x1:LX+2, y1:ry+4, x2:LX+LPW-2, y2:ry+4, stroke:C(0.1), 'stroke-width':'0.5'}, g);
+        tx(LX+5, ry, DATA[i][0], {'font-family':MONO,'font-size':'11',fill:C(0.45)}, g);
         const vel = tx(LX+LPW-5, ry, DATA[i][1](),
-          {'font-family':MONO,'font-size':'9',fill:C(0.9),'text-anchor':'end'}, g);
+          {'font-family':MONO,'font-size':'11',fill:C(0.9),'text-anchor':'end'}, g);
         rows.push({el:vel, fn:DATA[i][1]});
       }
       setInterval(() => { const r=rows[ri(0,rows.length-1)]; r.el.textContent=r.fn(); }, 480);
@@ -688,7 +689,7 @@ CONCEPTS</h1>
       if (RW < 80 || emH < 40) return;
       const g    = mk('g', {}, svg);
       tx(RX, emY - 2, 'ENERGY MATRIX', LA, g);
-      mk('rect', {x:RX, y:emY, width:RW, height:emH, fill:'none', stroke:C(0.15), 'stroke-width':'1'}, g);
+      mk('rect', {x:RX, y:emY, width:RW, height:emH, fill:'none', stroke:C(0.65), 'stroke-width':'1.5'}, g);
       const CS=9, GAP=2;
       const cols = Math.floor((RW-4) / (CS+GAP));
       const rows = Math.floor((emH-4) / (CS+GAP));
@@ -720,7 +721,7 @@ CONCEPTS</h1>
       const cosA  = Math.cos(ALPHA), sinA = Math.sin(ALPHA);
       const g     = mk('g', {}, svg);
       mk('rect', {x:RX, y:glbSecY, width:globeW, height:glbSecH,
-        fill:C(0.015), stroke:C(0.18), 'stroke-width':'1'}, g);
+        fill:C(0.04), stroke:C(0.65), 'stroke-width':'1.5'}, g);
       tx(RX, glbSecY - 2, 'GLOBAL UPLINK', LA, g);
       mk('circle', {cx:gcx, cy:gcy, r:R, fill:'none', stroke:C(0.6), 'stroke-width':'1.5'}, g);
       const N_LAT = 12;
@@ -771,7 +772,7 @@ CONCEPTS</h1>
       if (RW < 80 || barH < 40) return;
       const g = mk('g', {}, svg);
       tx(RX, barY - 9, 'SIGNAL ANALYSIS', LA, g);
-      mk('rect', {x:RX, y:barY, width:RW, height:barH, fill:'none', stroke:C(0.14), 'stroke-width':'1'}, g);
+      mk('rect', {x:RX, y:barY, width:RW, height:barH, fill:'none', stroke:C(0.65), 'stroke-width':'1.5'}, g);
       const N    = Math.max(6, Math.floor(RW / 16));
       const barW = (RW - 10) / N;
       const rects=[], targets=[], vals=[];
@@ -879,6 +880,68 @@ CONCEPTS</h1>
       animR();
     }
 
+    // ── USER ANALYSIS (left of proximity radar) ───────
+    function initUserAnalysis() {
+      const R   = Math.min(78, H * 0.086);
+      const rcx = W / 2;
+      const rcy = H - 54 - R - 14;
+      if (rcy - R < H / 2 + 150) return;
+
+      const uaRightEdge = Math.round(rcx - R - 20);
+      const uaW = Math.min(200, uaRightEdge - 14);
+      if (uaW < 110) return;
+      const uaX = uaRightEdge - uaW;
+      const LH2 = 22;
+      const nRows = 5;
+      const radarBottom = Math.round(rcy + R);
+      const uaY = radarBottom - (14 + (nRows - 1) * LH2 + 8);
+
+      const g = mk('g', {}, svg);
+      tx(uaX, uaY - 8, 'USER ANALYSIS', LA, g);
+
+      // Parse browser from UA
+      const ua = navigator.userAgent;
+      let browser = 'UNKNOWN';
+      if (ua.includes('Edg/')) browser = 'EDGE';
+      else if (ua.includes('OPR/') || ua.includes('Opera')) browser = 'OPERA';
+      else if (ua.includes('Firefox/')) browser = 'FIREFOX';
+      else if (ua.includes('Chrome/')) browser = 'CHROME';
+      else if (ua.includes('Safari/')) browser = 'SAFARI';
+
+      // Parse OS
+      let os = 'UNKNOWN';
+      if (ua.includes('Win')) os = 'WINDOWS';
+      else if (ua.includes('Mac')) os = 'MACOS';
+      else if (ua.includes('Linux')) os = 'LINUX';
+      else if (ua.includes('Android')) os = 'ANDROID';
+      else if (ua.includes('iPhone') || ua.includes('iPad')) os = 'IOS';
+
+      const tz = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UNKNOWN';
+      const res = screen.width + 'x' + screen.height;
+
+      const DATA = [
+        ['IP ADDR',   'RESOLVING...'],
+        ['BROWSER',   browser],
+        ['OS',        os],
+        ['TIMEZONE',  tz.split('/').pop().toUpperCase()],
+        ['RESOLUTION', res],
+      ];
+
+      const valEls = DATA.map(([lbl, val], i) => {
+        const ry = uaY + 14 + i * LH2;
+        if (i > 0)
+          mk('line', {x1:uaX, y1:ry-6, x2:uaX+uaW, y2:ry-6, stroke:C(0.08), 'stroke-width':'0.5'}, g);
+        tx(uaX, ry, lbl, {'font-family':MONO,'font-size':'11', fill:C(0.45)}, g);
+        return tx(uaX+uaW, ry, val, {'font-family':MONO,'font-size':'11', fill:C(0.9), 'text-anchor':'end'}, g);
+      });
+
+      // Async IP fetch
+      fetch('https://api.ipify.org?format=json')
+        .then(r => r.json())
+        .then(d => { valEls[0].textContent = d.ip || 'N/A'; })
+        .catch(() => { valEls[0].textContent = 'UNAVAILABLE'; });
+    }
+
     // ── SIGNAL SCOPE (centre, below terminal) ─────────
     function initScope() {
       const heroTop = H/2 - 160;
@@ -905,15 +968,21 @@ CONCEPTS</h1>
       }, 35);
     }
 
-    // ── TERMINAL BOOT SEQUENCE (top centre) ──────────
+    // ── TERMINAL BOOT SEQUENCE (left panel, middle slot) ──
     function initTerminal() {
+      if (LW < 90) return;
+      // Panel border + label drawn directly into the SVG
+      mk('rect', {x:LX, y:fanY, width:LPW, height:fanH,
+        fill:'rgba(111,255,122,0.04)', stroke:'rgba(111,255,122,0.65)', 'stroke-width':'1.5'}, svg);
+      tx(LX, fanY - 8, 'SYSTEM BOOT', LA, svg);
       const g = document.getElementById('terminal-lines');
       const LINES = [
+        '',
         '> BOOT SEQUENCE INITIATED',
-        '> LOADING CORE MODULES ......... [OK]',
-        '> MEMORY INTEGRITY CHECK ....... [OK]',
-        '> NETWORK INTERFACE UP ......... [OK]',
-        '> EXPLOSIVE CONCEPTS v1.0 ...... [OK]',
+        '> LOADING CORE MODULES ... [OK]',
+        '> MEMORY CHECK ........... [OK]',
+        '> NETWORK INTERFACE ...... [OK]',
+        '> EXPLOSIVE CONCEPTS v1.0  [OK]',
         '',
         '> INITIALIZING SYSTEM',
         '> PLEASE STAND BY',
@@ -940,7 +1009,7 @@ CONCEPTS</h1>
         }, 1400);
       }
       function run() {
-        const sx=Math.round(W/2-171), sy=50;
+        const sx = LX + 6, sy = fanY + 14;
         let idx=0;
         function next() {
           if (idx>=LINES.length) {
@@ -971,6 +1040,7 @@ CONCEPTS</h1>
       initBars();
       initHexBar();
       initRadar();
+      initUserAnalysis();
       initDeorbital();
       initScope();
       initTerminal();
