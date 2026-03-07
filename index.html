@@ -258,37 +258,43 @@ CONCEPTS</h1>
     const LA   = { 'font-family': MONO, 'font-size': '9', 'letter-spacing': '2', fill: C(0.45) };
 
     // ── Layout zones ──────────────────────────────────
-    const HW  = Math.min(700, W * 0.85);
-    const HL  = (W - HW) / 2;
-    const HR  = HL + HW;
-    const LW  = HL - 28;        // left zone width
-    const RX  = HR + 28;        // right zone start x
-    const RW  = W - RX - 14;   // right zone width
-    const LX  = 18;              // left zone start x
-    const LPW = Math.max(80, LW - 10);  // left panel draw width — fills the full left zone
+    // Center column is a fixed reservation; side columns fill the remainder.
+    // This keeps side panel widths generous on large screens and causes them
+    // to collapse gracefully on small screens.
+    const HERO_ZONE = 640;               // px reserved for the center column
+    const HL  = Math.max(14, (W - HERO_ZONE) / 2);
+    const HR  = HL + HERO_ZONE;
+    const LW  = HL - 20;                 // left zone width
+    const RX  = HR + 20;                 // right zone start x
+    const RW  = W - RX - 14;            // right zone width
+    const LX  = 14;                     // left zone start x
+    const LPW = Math.max(80, LW - 6);   // left panel draw width
 
-    // Vertical rhythm — shared by all widgets
-    const PAD = 22;              // gap between adjacent panels (≥17 needed for labels)
-    const TOP = 42;              // top of usable area (below status bar rule)
-    const BOT = 70;              // bottom margin (above hex strip)
-    const lpH = H - TOP - BOT;  // total usable height
+    // Vertical rhythm
+    const GAP = 18;                      // gap between adjacent panels
+    const TOP = 42;                      // top of usable area (below status bar)
+    const BOT = 70;                      // bottom margin (above hex strip)
+    const lpH = H - TOP - BOT;          // total usable column height
 
-    // Left panel — sequential Y positions (top → bottom, 4 widgets)
-    const pcbH = Math.round(lpH * 0.30);  const pcbY = TOP;
-    const fanH = Math.round(lpH * 0.26);  const fanY = pcbY + pcbH + PAD;
-    const pwrH = Math.max(46, Math.round(lpH * 0.10)); const pwrY = fanY + fanH + PAD;
-    const telY = pwrY + pwrH + PAD;
-    const telH = Math.max(50, H - BOT - telY);
+    // Left panel — 3 widgets: PCB Schematic, Tactical Radar, System Telemetry
+    const pcbH = Math.round(lpH * 0.34); const pcbY = TOP;
+    const fanH = Math.round(lpH * 0.38); const fanY = pcbY + pcbH + GAP;
+    const telY = fanY + fanH + GAP;
+    const telH = Math.max(60, H - BOT - telY);
 
-    // Right panel — sequential Y positions (top → bottom, 4 widgets)
-    const emH     = Math.round(lpH * 0.20);  const emY     = TOP;
-    const glbSecH = Math.round(lpH * 0.30);  const glbSecY = emY + emH + PAD;
-    const gcR     = Math.min(RW * 0.42, 100, (glbSecH - 30) / 2);
-    const gcx     = RX + RW * 0.5;
-    const gcy     = glbSecY + 14 + gcR;
-    const arcH    = Math.round(lpH * 0.15);  const arcY    = glbSecY + glbSecH + PAD;
-    const barY    = arcY + arcH + PAD;
+    // Right panel — 3 widgets: Energy Matrix, Globe+Bearing (split), Signal Bars
+    const emH     = Math.round(lpH * 0.20); const emY     = TOP;
+    const glbSecH = Math.round(lpH * 0.44); const glbSecY = emY + emH + GAP;
+    const barY    = glbSecY + glbSecH + GAP;
     const barH    = Math.max(40, H - BOT - barY);
+
+    // Globe section split: globe takes left 55%, bearing indicator takes right 45%
+    const globeW = Math.round(RW * 0.55);
+    const auxW   = RW - globeW - 5;
+    const auxX   = RX + globeW + 5;
+    const gcR    = Math.min(globeW * 0.44, 88, (glbSecH - 30) / 2);
+    const gcx    = RX + globeW * 0.5;
+    const gcy    = glbSecY + 14 + gcR;
 
     // ── TOP STATUS BAR ────────────────────────────────
     function initTopBar() {
@@ -314,7 +320,7 @@ CONCEPTS</h1>
 
     // ── PCB SCHEMATIC (left, top) ─────────────────────
     function initPCB() {
-      if (LW < 110) return;
+      if (LW < 145) return;
       const px = LX, py = pcbY, pw = LPW, ph = pcbH;
       const g  = mk('g', {}, svg);
       tx(px, py - 9, 'PCB SCHEMATIC', LA, g);
@@ -383,165 +389,272 @@ CONCEPTS</h1>
       redraw(); setInterval(redraw, 1800);
     }
 
-    // ── TACTICAL FAN RADAR (left, radar2-style) ───────
-    function initFanRadar() {
-      if (LW < 110) return;
+    // ── NETWORK TOPOLOGY (left panel, 2nd widget) ─────
+    function initNetworkMap() {
+      if (LW < 145 || fanH < 60) return;
       const fw = LPW, fh = fanH;
-      if (fh < 50) return;
       const fx = LX, fy = fanY;
       const g  = mk('g', {}, svg);
-      tx(fx, fy - 8, 'TACTICAL SCAN', LA, g);
-      mk('rect', {x:fx, y:fy, width:fw, height:fh, fill:'none', stroke:C(0.18), 'stroke-width':'1'}, g);
+      tx(fx, fy - 8, 'NETWORK TOPOLOGY', LA, g);
+      mk('rect', {x:fx, y:fy, width:fw, height:fh, fill:C(0.015), stroke:C(0.22), 'stroke-width':'1'}, g);
 
-      // Background dot grid
-      for (let dgx = fx+5; dgx < fx+fw-2; dgx += 9)
-        for (let dgy = fy+4; dgy < fy+fh-2; dgy += 9)
-          mk('rect', {x:dgx-0.5, y:dgy-0.5, width:1, height:1, fill:C(0.1)}, g);
+      // Subtle dot grid background
+      for (let gx2 = fx+10; gx2 < fx+fw-4; gx2 += 14)
+        for (let gy2 = fy+8; gy2 < fy+fh-4; gy2 += 14)
+          mk('rect', {x:gx2-0.5, y:gy2-0.5, width:1, height:1, fill:C(0.08)}, g);
 
-      // Fan origin: bottom-centre of widget
-      const fcx = fx + fw / 2;
-      const fcy = fy + fh - 3;
-      const maxR = Math.min(fw * 0.47, fh * 0.93);
+      // Generate nodes with some padding from edges
+      const PAD = 20;
+      const N_NODES = Math.min(14, Math.floor((fw * fh) / 2800));
+      const nodes = Array.from({length: N_NODES}, (_, i) => ({
+        x: fx + PAD + Math.random() * (fw - PAD*2),
+        y: fy + PAD + Math.random() * (fh - PAD*2),
+        id: (i + 1).toString().padStart(2, '0'),
+        active: Math.random() > 0.25,
+      }));
 
-      // Thin grid lines across the whole widget
-      for (let i = 1; i < 10; i++)
-        mk('line', {x1:fx + i*fw/10, y1:fy+2, x2:fx + i*fw/10, y2:fcy,
-          stroke:C(0.07), 'stroke-width':'0.3'}, g);
-      for (let i = 1; i < 5; i++)
-        mk('line', {x1:fx+2, y1:fy + i*fh/5, x2:fx+fw-2, y2:fy + i*fh/5,
-          stroke:C(0.07), 'stroke-width':'0.3'}, g);
-
-      // Concentric half-arcs (5 rings, sweep-flag=0 = upper half)
-      for (let arc = 1; arc <= 5; arc++) {
-        const r = maxR * arc / 5;
-        mk('path', {
-          d: `M${(fcx-r).toFixed(1)},${fcy} A${r.toFixed(1)},${r.toFixed(1)} 0 0,0 ${(fcx+r).toFixed(1)},${fcy}`,
-          fill: 'none', stroke: C(arc===5 ? 0.45 : 0.18),
-          'stroke-width': arc===5 ? '1.2' : '0.6'
-        }, g);
-      }
-
-      // Radial spokes
-      for (let rl = 0; rl <= 8; rl++) {
-        const ra  = -Math.PI + rl * Math.PI / 8;
-        const ry2 = fcy + maxR * Math.sin(ra);
-        if (ry2 <= fcy + 1)
-          mk('line', {x1:fcx, y1:fcy,
-            x2:(fcx + maxR * Math.cos(ra)).toFixed(1),
-            y2:ry2.toFixed(1),
-            stroke:C(0.18), 'stroke-width':'0.5'}, g);
-      }
-
-      // Target contacts
-      const ctargets = [
-        {angle:rnd(-2.6,-1.9), r:rnd(0.45,0.85)*maxR, shape:'circle'},
-        {angle:rnd(-2.3,-1.5), r:rnd(0.35,0.78)*maxR, shape:'triangle'},
-        {angle:rnd(-1.8,-0.9), r:rnd(0.40,0.82)*maxR, shape:'square'},
-        {angle:rnd(-2.5,-0.5), r:rnd(0.30,0.72)*maxR, shape:'diamond'},
-      ];
-      ctargets.forEach((ct, i) => {
-        const cx = fcx + ct.r * Math.cos(ct.angle);
-        const cy = fcy + ct.r * Math.sin(ct.angle);
-        if (cy > fcy - 4) return;
-        const label = (i % 2 === 0 ? '-' : '+') + ri(1, 12);
-        if (ct.shape === 'circle')
-          mk('circle', {cx:cx.toFixed(1), cy:cy.toFixed(1), r:4,
-            fill:C(0.2), stroke:C(0.9), 'stroke-width':'1.5'}, g);
-        else if (ct.shape === 'triangle')
-          mk('polygon', {points:`${cx},${cy-5} ${cx+4.5},${cy+3} ${cx-4.5},${cy+3}`,
-            fill:'none', stroke:C(0.9), 'stroke-width':'1.2'}, g);
-        else if (ct.shape === 'square')
-          mk('rect', {x:(cx-3.5).toFixed(1), y:(cy-3.5).toFixed(1), width:7, height:7,
-            fill:'none', stroke:C(0.9), 'stroke-width':'1.2'}, g);
-        else
-          mk('polygon', {points:`${cx},${cy-5} ${cx+4.5},${cy} ${cx},${cy+5} ${cx-4.5},${cy}`,
-            fill:'none', stroke:C(0.9), 'stroke-width':'1.2'}, g);
-        tx(cx+7, cy+2, label, {'font-family':MONO,'font-size':'7',fill:C(0.6)}, g);
-      });
-
-      // Sweep line + glow trail
-      const swpLine = mk('line', {x1:fcx, y1:fcy, x2:fcx, y2:fcy-maxR,
-        stroke:C(0.85), 'stroke-width':'1.2'}, g);
-      const swpGlow = mk('path', {fill:C(0.06), stroke:'none'}, g);
-
-      // Data readout in lower-left corner of the fan widget
-      const rdY0 = fy + fh * 0.58;
-      const rdLabels = ['BEARING','RANGE','ALT','TGT'];
-      const rdVals = [
-        () => ri(0,359).toString().padStart(3,'0') + '\u00b0',
-        () => rnd(1.2,99.8).toFixed(1) + 'NM',
-        () => ri(1000,45000) + 'FT',
-        () => ri(3,12) + '',
-      ];
-      const rdEls = rdLabels.map((lbl, i) => {
-        const ly = rdY0 + i * 11;
-        tx(fx+3, ly, lbl, {'font-family':MONO,'font-size':'7',fill:C(0.3)}, g);
-        return tx(fx+52, ly, rdVals[i](), {'font-family':MONO,'font-size':'7',fill:C(0.75)}, g);
-      });
-      setInterval(() => rdEls.forEach((el, i) => { el.textContent = rdVals[i](); }), 1100);
-
-      // Sweep: one-directional left→right, snap reset
-      let swAngle = -Math.PI;
-      function animFan() {
-        swAngle += 0.016;
-        if (swAngle > 0) swAngle = -Math.PI;
-        const trailA = Math.max(-Math.PI, swAngle - 0.32);
-        if (swAngle > -Math.PI + 0.38) {
-          const gx1 = (fcx + maxR * Math.cos(trailA)).toFixed(1);
-          const gy1 = (fcy + maxR * Math.sin(trailA)).toFixed(1);
-          const gx2 = (fcx + maxR * Math.cos(swAngle)).toFixed(1);
-          const gy2 = (fcy + maxR * Math.sin(swAngle)).toFixed(1);
-          swpGlow.setAttribute('d',
-            `M${fcx},${fcy} L${gx1},${gy1} A${maxR.toFixed(1)},${maxR.toFixed(1)} 0 0,1 ${gx2},${gy2} Z`);
-        } else {
-          swpGlow.setAttribute('d', '');
+      // Connect nearby nodes
+      const edges = [];
+      for (let i = 0; i < N_NODES; i++) {
+        for (let j = i + 1; j < N_NODES; j++) {
+          const dx = nodes[i].x - nodes[j].x, dy = nodes[i].y - nodes[j].y;
+          if (Math.sqrt(dx*dx + dy*dy) < fw * 0.38 && Math.random() > 0.45)
+            edges.push({from: i, to: j});
         }
-        swpLine.setAttribute('x2', (fcx + maxR * Math.cos(swAngle)).toFixed(1));
-        swpLine.setAttribute('y2', (fcy + maxR * Math.sin(swAngle)).toFixed(1));
-        requestAnimationFrame(animFan);
       }
-      animFan();
+
+      // Draw edges
+      const edgeEls = edges.map(e =>
+        mk('line', {
+          x1: nodes[e.from].x.toFixed(1), y1: nodes[e.from].y.toFixed(1),
+          x2: nodes[e.to].x.toFixed(1),   y2: nodes[e.to].y.toFixed(1),
+          stroke: C(0.18), 'stroke-width':'0.7'
+        }, g)
+      );
+
+      // Draw nodes
+      const nodeEls = nodes.map(n => {
+        const el = mk('circle', {
+          cx: n.x.toFixed(1), cy: n.y.toFixed(1),
+          r: 3.5, fill: n.active ? C(0.35) : C(0.06), stroke: C(0.75), 'stroke-width':'0.9'
+        }, g);
+        tx(n.x + 5, n.y + 3, n.id, {'font-family':MONO,'font-size':'6', fill:C(0.38)}, g);
+        return el;
+      });
+
+      // Data packets traversing edges
+      const pkts = Array.from({length: Math.min(6, edges.length)}, () => ({
+        t: Math.random(), edge: ri(0, edges.length-1), spd: rnd(0.005, 0.014),
+        el: mk('circle', {cx:0, cy:0, r:2.5, fill:C(0.95), opacity:'0'}, g),
+      }));
+
+      // Status footer
+      tx(fx+3, fy+fh-5, 'NODES:'+N_NODES+'  LINKS:'+edges.length,
+        {'font-family':MONO,'font-size':'7', fill:C(0.28)}, g);
+
+      function animNet() {
+        pkts.forEach(p => {
+          p.t += p.spd;
+          if (p.t >= 1) { p.t = 0; p.edge = ri(0, edges.length-1); p.spd = rnd(0.005,0.014); }
+          if (!edges[p.edge]) return;
+          const {from, to} = edges[p.edge];
+          const x = nodes[from].x + (nodes[to].x - nodes[from].x) * p.t;
+          const y = nodes[from].y + (nodes[to].y - nodes[from].y) * p.t;
+          p.el.setAttribute('cx', x.toFixed(1));
+          p.el.setAttribute('cy', y.toFixed(1));
+          p.el.setAttribute('opacity', (0.5 + Math.sin(p.t * Math.PI) * 0.5).toFixed(2));
+        });
+        requestAnimationFrame(animNet);
+      }
+      animNet();
+
+      // Occasionally flicker node/edge activity
+      setInterval(() => {
+        const n = nodes[ri(0, N_NODES-1)];
+        n.active = !n.active;
+        nodeEls[nodes.indexOf(n)].setAttribute('fill', n.active ? C(0.35) : C(0.06));
+        if (edges.length) {
+          const ei = ri(0, edges.length-1);
+          edgeEls[ei].setAttribute('stroke', Math.random() > 0.5 ? C(0.28) : C(0.1));
+        }
+      }, 500);
     }
 
-    // ── POWER DISTRIBUTION (left, below fan radar) ────
-    function initPowerDist() {
-      if (LW < 110 || pwrH < 38) return;
+    // ── BEARING INDICATOR (right panel, beside globe) ──
+    function initBearing() {
+      if (auxW < 75 || glbSecH < 80) return;
+      const bR  = Math.min(auxW * 0.40, glbSecH * 0.35, 52);
+      const bcx = auxX + auxW * 0.5;
+      const bcy = glbSecY + glbSecH * 0.44;
+      const g   = mk('g', {}, svg);
+      mk('rect', {x:auxX, y:glbSecY, width:auxW, height:glbSecH,
+        fill:C(0.015), stroke:C(0.18), 'stroke-width':'1'}, g);
+      tx(auxX, glbSecY - 2, 'HEADING', LA, g);
+
+      // Rings
+      mk('circle', {cx:bcx, cy:bcy, r:bR,      fill:'none', stroke:C(0.55), 'stroke-width':'1.2'}, g);
+      mk('circle', {cx:bcx, cy:bcy, r:bR*0.65, fill:'none', stroke:C(0.14), 'stroke-width':'0.5'}, g);
+      mk('circle', {cx:bcx, cy:bcy, r:bR*0.28, fill:'none', stroke:C(0.14), 'stroke-width':'0.5'}, g);
+
+      // Tick marks and degree labels
+      for (let deg = 0; deg < 360; deg += 10) {
+        const a    = (deg - 90) * Math.PI / 180;
+        const isMaj = deg % 30 === 0;
+        const inner = bR * (isMaj ? 0.82 : 0.91);
+        mk('line', {
+          x1:(bcx + inner * Math.cos(a)).toFixed(1), y1:(bcy + inner * Math.sin(a)).toFixed(1),
+          x2:(bcx + bR   * Math.cos(a)).toFixed(1), y2:(bcy + bR   * Math.sin(a)).toFixed(1),
+          stroke: C(isMaj ? 0.55 : 0.25), 'stroke-width': isMaj ? '1.0' : '0.5'
+        }, g);
+        if (deg % 90 === 0) {
+          const lbl = ['N','E','S','W'][deg/90];
+          tx((bcx + bR*0.65*Math.cos(a)).toFixed(1),
+             (bcy + bR*0.65*Math.sin(a) + 3).toFixed(1), lbl,
+             {'font-family':MONO,'font-size':'8','text-anchor':'middle', fill:C(0.75)}, g);
+        }
+      }
+
+      // Needle + tail + pivot
+      const needle     = mk('line', {x1:bcx, y1:bcy, x2:bcx, y2:bcy-bR*0.80,
+        stroke:C(0.95), 'stroke-width':'1.6', 'stroke-linecap':'round'}, g);
+      const needleTail = mk('line', {x1:bcx, y1:bcy, x2:bcx, y2:bcy+bR*0.35,
+        stroke:C(0.38), 'stroke-width':'1.0', 'stroke-linecap':'round'}, g);
+      mk('circle', {cx:bcx, cy:bcy, r:3, fill:C(0.8)}, g);
+
+      // Digital readout below compass
+      const hdgEl = tx(bcx, bcy + bR + 13, '000\u00b0',
+        {'font-family':MONO,'font-size':'9','text-anchor':'middle', fill:C(0.88)}, g);
+      const spdEl = tx(bcx, bcy + bR + 24, 'SPD:--',
+        {'font-family':MONO,'font-size':'7','text-anchor':'middle', fill:C(0.38)}, g);
+
+      let hdg = rnd(0, 360), tgtHdg = hdg, spd = rnd(4.0, 9.9);
+      function animBearing() {
+        let diff = tgtHdg - hdg;
+        if (diff >  180) diff -= 360;
+        if (diff < -180) diff += 360;
+        hdg += diff * 0.018;
+        if (hdg < 0) hdg += 360;
+        if (hdg >= 360) hdg -= 360;
+        const a = (hdg - 90) * Math.PI / 180;
+        needle.setAttribute('x2',     (bcx + bR*0.80*Math.cos(a)).toFixed(1));
+        needle.setAttribute('y2',     (bcy + bR*0.80*Math.sin(a)).toFixed(1));
+        needleTail.setAttribute('x2', (bcx - bR*0.35*Math.cos(a)).toFixed(1));
+        needleTail.setAttribute('y2', (bcy - bR*0.35*Math.sin(a)).toFixed(1));
+        hdgEl.textContent = Math.round(hdg).toString().padStart(3,'0') + '\u00b0';
+        requestAnimationFrame(animBearing);
+      }
+      animBearing();
+      setInterval(() => { tgtHdg = rnd(0, 360); spd = rnd(4.0, 9.9); spdEl.textContent = 'SPD:'+spd.toFixed(1)+'c'; }, 3200);
+    }
+
+    // ── DEORBITAL DESCENT (right of proximity radar) ──
+    function initDeorbital() {
+      const R   = Math.min(78, H * 0.086);
+      const rcx = W / 2;
+      const rcy = H - 54 - R - 14;
+      if (rcy - R < H / 2 + 130) return;   // not enough vertical room
+
+      const dwX = Math.round(rcx + R + 24);
+      const dwW = Math.min(215, (W - 14) - dwX - 6);
+      if (dwW < 100) return;                // not enough horizontal room
+      const dwH = Math.round(R * 2 + 6);
+      const dwY = Math.round(rcy - R);
+
       const g = mk('g', {}, svg);
-      tx(LX, pwrY - 8, 'PWR DISTRIBUTION', LA, g);
-      mk('rect', {x:LX, y:pwrY, width:LPW, height:pwrH, fill:'none', stroke:C(0.15), 'stroke-width':'1'}, g);
-      const CHLABELS = ['MAIN','AUX','SHIELD'];
-      const nCh = Math.max(1, Math.min(CHLABELS.length, Math.floor((pwrH - 6) / 15)));
-      const bars = [], tgts = [];
-      for (let i = 0; i < nCh; i++) {
-        const rowH = Math.floor((pwrH - 6) / nCh);
-        const by2  = pwrY + 3 + i * rowH;
-        const bh2  = rowH - 3;
-        tx(LX+3, by2 + Math.round(bh2 * 0.72), CHLABELS[i], {'font-family':MONO,'font-size':'7',fill:C(0.4)}, g);
-        const maxW = LPW - 44;
-        const t    = rnd(0.3, 0.95);
-        tgts.push(t);
-        bars.push({
-          el: mk('rect', {x:LX+42, y:by2+1, width:(t*maxW).toFixed(1), height:bh2-2,
-            fill:C(0.28), stroke:C(0.5), 'stroke-width':'0.5'}, g),
-          val: t, maxW
+      mk('rect', {x:dwX, y:dwY, width:dwW, height:dwH,
+        fill:C(0.015), stroke:C(0.22), 'stroke-width':'1'}, g);
+      tx(dwX, dwY - 8, 'DEORBITAL DESCENT', LA, g);
+
+      // Header strip
+      const hdrH = 16;
+      mk('rect', {x:dwX, y:dwY, width:dwW, height:hdrH,
+        fill:C(0.06), stroke:'none'}, g);
+      tx(dwX + 3, dwY + 11, 'COMMENCE FINAL', {'font-family':MONO,'font-size':'7',fill:C(0.75)}, g);
+      const sysEl = tx(dwX + dwW - 3, dwY + 11, 'SYS:BL:76.75',
+        {'font-family':MONO,'font-size':'7',fill:C(0.55),'text-anchor':'end'}, g);
+      setInterval(() => {
+        sysEl.textContent = 'SYS:BL:'+rnd(70,99).toFixed(2);
+      }, 1800);
+
+      // Vertical divider: map (left 58%) | data panel (right 42%)
+      const mpW  = Math.round(dwW * 0.58);
+      const dpX  = dwX + mpW;
+      const mapH = dwH - hdrH;
+      const mapY = dwY + hdrH;
+      mk('line', {x1:dpX, y1:dwY+hdrH, x2:dpX, y2:dwY+dwH,
+        stroke:C(0.2), 'stroke-width':'0.5'}, g);
+
+      // Corner crosshairs inside map
+      const xhS = 5;
+      [[dwX+7, mapY+6],[dwX+mpW-9, mapY+6],[dwX+7, dwY+dwH-7],[dwX+mpW-9, dwY+dwH-7]]
+        .forEach(([cx, cy]) => {
+          mk('line', {x1:cx-xhS,y1:cy, x2:cx+xhS,y2:cy, stroke:C(0.55),'stroke-width':'0.9'}, g);
+          mk('line', {x1:cx,y1:cy-xhS, x2:cx,y2:cy+xhS, stroke:C(0.55),'stroke-width':'0.9'}, g);
         });
+
+      // Animated contour map — planet-edge arc style
+      const cg = mk('g', {}, g);
+      function redrawContours() {
+        while (cg.firstChild) cg.removeChild(cg.firstChild);
+        const ox = dwX + mpW * 0.70;
+        const oy = mapY + mapH / 2;
+        const nC = ri(7, 11);
+        for (let i = 0; i < nC; i++) {
+          const baseR = mapH * (0.15 + i * 0.095);
+          const pts = [];
+          for (let j = 0; j <= 22; j++) {
+            const a  = -Math.PI * 0.55 + (j / 22) * Math.PI * 1.1;
+            const r  = baseR + rnd(-7, 7);
+            const px = ox + r * Math.cos(a);
+            const py = oy + r * Math.sin(a);
+            if (px >= dwX+1 && px <= dpX-1 && py >= mapY+1 && py <= dwY+dwH-1)
+              pts.push(`${px.toFixed(1)},${py.toFixed(1)}`);
+          }
+          if (pts.length < 3) continue;
+          mk('polyline', {
+            points: pts.join(' '), fill:'none',
+            stroke: i < 4 ? C(0.25 + i*0.06) : C(0.5 + (i-4)*0.04),
+            'stroke-width': i < 3 ? '0.8' : '1.0', 'stroke-linejoin':'round'
+          }, cg);
+        }
+        // Scan lines
+        for (let i = 0; i < ri(2, 5); i++) {
+          const x1 = dwX + rnd(4, mpW * 0.65);
+          const y1 = mapY + rnd(4, mapH - 4);
+          const x2 = Math.min(dpX - 2, x1 + rnd(14, mpW * 0.45));
+          const y2 = mapY + rnd(4, mapH - 4);
+          mk('line', {x1:x1.toFixed(1), y1:y1.toFixed(1), x2:x2.toFixed(1), y2:y2.toFixed(1),
+            stroke:C(0.22), 'stroke-width':'0.6'}, cg);
+        }
       }
-      setInterval(() => bars.forEach((_, i) => {
-        tgts[i] = Math.max(0.08, Math.min(1, tgts[i] + rnd(-0.07, 0.07)));
-      }), 550);
-      function animPwr() {
-        bars.forEach((b, i) => {
-          b.val += (tgts[i] - b.val) * 0.07;
-          b.el.setAttribute('width', (b.val * b.maxW).toFixed(1));
-        });
-        requestAnimationFrame(animPwr);
-      }
-      animPwr();
+      redrawContours();
+      setInterval(redrawContours, 1900);
+
+      // Data panel rows
+      const DATA = [
+        ['HEADING',  () => 'N.'+ri(10,99)+' E.'+ri(10,99)],
+        ['GND SPD',  () => rnd(60,99).toFixed(2)],
+        ['COND',     () => ri(10,20)+' S=C'+ri(60,80)],
+        ['SYS #',    () => String(ri(1, 9))],
+        ['COUNT',    () => ri(3000,9999)+'.'+ri(100,999)],
+      ];
+      const rowH2 = Math.floor(mapH / DATA.length);
+      const dpEls = DATA.map(([lbl, fn], i) => {
+        const ry = mapY + i * rowH2;
+        if (i > 0)
+          mk('line', {x1:dpX, y1:ry, x2:dwX+dwW, y2:ry, stroke:C(0.13),'stroke-width':'0.5'}, g);
+        tx(dpX+3, ry+9,  lbl, {'font-family':MONO,'font-size':'7', fill:C(0.38)}, g);
+        return tx(dpX+3, ry+19, fn(), {'font-family':MONO,'font-size':'8', fill:C(0.88)}, g);
+      });
+      setInterval(() => {
+        const i = ri(0, dpEls.length - 1);
+        dpEls[i].textContent = DATA[i][1]();
+      }, 750);
     }
 
     // ── SYSTEM TELEMETRY (left, bottom) ───────────────
     function initDataReadout() {
-      if (LW < 110 || telH < 50) return;
+      if (LW < 90 || telH < 50) return;
       const g = mk('g', {}, svg);
       tx(LX, telY - 9, 'SYSTEM TELEMETRY', LA, g);
       mk('rect', {x:LX, y:telY, width:LPW, height:telH, fill:'none', stroke:C(0.14), 'stroke-width':'1'}, g);
@@ -601,12 +714,14 @@ CONCEPTS</h1>
 
     // ── WIREFRAME GLOBE (right) ───────────────────────
     function initGlobe() {
-      if (RW < 100 || gcR < 20) return;
+      if (globeW < 100 || gcR < 20) return;
       const R     = gcR;
       const ALPHA = 0.22;
       const cosA  = Math.cos(ALPHA), sinA = Math.sin(ALPHA);
       const g     = mk('g', {}, svg);
-      tx(gcx - R, glbSecY + 9, 'GLOBAL UPLINK', LA, g);
+      mk('rect', {x:RX, y:glbSecY, width:globeW, height:glbSecH,
+        fill:C(0.015), stroke:C(0.18), 'stroke-width':'1'}, g);
+      tx(RX, glbSecY - 2, 'GLOBAL UPLINK', LA, g);
       mk('circle', {cx:gcx, cy:gcy, r:R, fill:'none', stroke:C(0.6), 'stroke-width':'1.5'}, g);
       const N_LAT = 12;
       for (let i = 1; i < N_LAT; i++) {
@@ -649,54 +764,6 @@ CONCEPTS</h1>
         requestAnimationFrame(animGlobe);
       }
       animGlobe();
-    }
-
-    // ── ARC INTERCEPT SCAN (right, globe↔bars) ────────
-    function initScanArc() {
-      if (RW < 80 || arcH < 40) return;
-      const acx = RX + RW / 2;
-      const acy = arcY + arcH - 2;          // origin at widget bottom
-      const AR  = Math.min(RW * 0.44, arcH * 0.88);  // arcs stay inside widget
-      const g   = mk('g', {}, svg);
-      tx(RX, arcY - 8, 'INTERCEPT PATH', LA, g);
-      mk('rect', {x:RX, y:arcY, width:RW, height:arcH, fill:'none', stroke:C(0.15), 'stroke-width':'1'}, g);
-      for (let i=1; i<=3; i++) {
-        const r = AR*i/3;
-        mk('path', {
-          d: `M${(acx-r).toFixed(1)},${acy.toFixed(1)} A${r.toFixed(1)},${r.toFixed(1)} 0 0,0 ${(acx+r).toFixed(1)},${acy.toFixed(1)}`,
-          fill:'none', stroke:C(0.25), 'stroke-width':'0.7'
-        }, g);
-      }
-      for (let j=0; j<=6; j++) {
-        const a = -Math.PI + j*Math.PI/6;
-        mk('line', {x1:acx, y1:acy,
-          x2:(acx+AR*Math.cos(a)).toFixed(1), y2:(acy+AR*Math.sin(a)).toFixed(1),
-          stroke:C(0.12), 'stroke-width':'0.5'}, g);
-      }
-      const shapes = [
-        {angle:rnd(-2.7,-0.4), r:rnd(0.35,0.82)*AR, spd:0.003,
-         el:mk('rect',{x:-2.5,y:-2.5,width:5,height:5,fill:'none',stroke:C(0.9),'stroke-width':'1'},g),
-         lbl:tx(0,0,'\u25a1 -7',{'font-family':MONO,'font-size':'7',fill:C(0.55)},g)},
-        {angle:rnd(-2.7,-0.4), r:rnd(0.35,0.82)*AR, spd:-0.004,
-         el:mk('polygon',{points:'0,-5 4,3 -4,3',fill:'none',stroke:C(0.9),'stroke-width':'1'},g),
-         lbl:tx(0,0,'\u25b3 -3',{'font-family':MONO,'font-size':'7',fill:C(0.55)},g)},
-        {angle:rnd(-2.7,-0.4), r:rnd(0.35,0.82)*AR, spd:0.0025,
-         el:mk('circle',{cx:0,cy:0,r:4,fill:C(0.12),stroke:C(0.9),'stroke-width':'1.2'},g),
-         lbl:tx(0,0,'\u25c9 +7',{'font-family':MONO,'font-size':'7',fill:C(0.55)},g)},
-      ];
-      function animArc() {
-        shapes.forEach(s => {
-          s.angle += s.spd;
-          if (s.angle < -Math.PI+0.1 || s.angle > -0.1) s.spd *= -1;
-          const tx2 = (acx + s.r * Math.cos(s.angle)).toFixed(1);
-          const ty2 = (acy + s.r * Math.sin(s.angle)).toFixed(1);
-          s.el.setAttribute('transform', `translate(${tx2},${ty2})`);
-          s.lbl.setAttribute('x', String(+tx2+6));
-          s.lbl.setAttribute('y', String(+ty2-2));
-        });
-        requestAnimationFrame(animArc);
-      }
-      animArc();
     }
 
     // ── SIGNAL ANALYSIS / BAR CHARTS (right, bottom) ──
@@ -896,15 +963,15 @@ CONCEPTS</h1>
     document.fonts.ready.then(() => {
       initTopBar();
       initPCB();
-      initFanRadar();
-      initPowerDist();
+      initNetworkMap();
       initDataReadout();
       initEnergyMatrix();
       initGlobe();
-      initScanArc();
+      initBearing();
       initBars();
       initHexBar();
       initRadar();
+      initDeorbital();
       initScope();
       initTerminal();
     });
