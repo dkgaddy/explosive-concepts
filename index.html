@@ -157,15 +157,22 @@
       width: 6px; height: 3px;
       background: rgba(255,255,255,0.4);
     }
+
+    /* ── Mobile responsive ── */
+    @media (max-width: 640px) {
+      .hero-box { padding: 28px 20px 32px; max-width: 100%; }
+      .hero-box h1 { font-size: 36px !important; }
+    }
   </style>
 </head>
 <body class="flicker">
 
-  <!-- ── Video background ── -->
-  <video autoplay muted loop playsinline
-    style="position:fixed;inset:0;width:100%;height:100%;object-fit:cover;z-index:0;">
-    <source src="522.mp4" type="video/mp4">
-  </video>
+  <!-- ── SVG terminal background ── -->
+  <svg id="bg-anim" xmlns="http://www.w3.org/2000/svg"
+    style="position:fixed;inset:0;width:100%;height:100%;z-index:0;">
+    <rect width="100%" height="100%" fill="#050505"/>
+    <g id="terminal-lines" font-family="'Space Mono',monospace" font-size="15" fill="#6fff7a" opacity="0.85"></g>
+  </svg>
 
   <!-- ── Dark overlay ── -->
   <div style="position:fixed;inset:0;background:rgba(0,0,0,0.52);z-index:1;"></div>
@@ -208,7 +215,6 @@ CONCEPTS</h1>
 
       <!-- CTA buttons -->
       <div style="margin-left:24px;display:flex;gap:14px;flex-wrap:wrap;align-items:center;">
-        <!-- <a href="mailto:hello@explosiveconcepts.com" class="btn-retro">GET IN TOUCH</a> -->
         <a href="mailto:hello@explosiveconcepts.com" class="btn-retro">CONTACT US</a>
       </div>
 
@@ -225,5 +231,684 @@ CONCEPTS</h1>
     </div>
   </div>
 
+
+  <script>
+  (function () {
+    const NS  = 'http://www.w3.org/2000/svg';
+    const svg = document.getElementById('bg-anim');
+    const W   = window.innerWidth, H = window.innerHeight;
+
+    function mk(tag, attrs, parent) {
+      const el = document.createElementNS(NS, tag);
+      for (const [k, v] of Object.entries(attrs))
+        if (v != null) el.setAttribute(k, v);
+      if (parent) parent.appendChild(el);
+      return el;
+    }
+    function tx(x, y, s, a, p) {
+      const el = mk('text', Object.assign({x, y}, a), p);
+      el.textContent = s; return el;
+    }
+    function rnd(a, b) { return Math.random() * (b - a) + a; }
+    function ri(a, b)  { return Math.floor(rnd(a, b + 1)); }
+    function rhex(n)   { return Array.from({length:n}, () => ri(0,255).toString(16).toUpperCase().padStart(2,'0')).join(''); }
+
+    const C    = a => `rgba(111,255,122,${a})`;
+    const MONO = "'Space Mono',monospace";
+    const LA   = { 'font-family': MONO, 'font-size': '9', 'letter-spacing': '2', fill: C(0.45) };
+
+    // ── Layout zones ──────────────────────────────────
+    const HW  = Math.min(700, W * 0.85);
+    const HL  = (W - HW) / 2;
+    const HR  = HL + HW;
+    const LW  = HL - 28;        // left zone width
+    const RX  = HR + 28;        // right zone start x
+    const RW  = W - RX - 14;   // right zone width
+    const LX  = 18;              // left zone start x
+    const LPW = Math.max(80, LW - 10);  // left panel draw width — fills the full left zone
+
+    // Vertical rhythm — shared by all widgets
+    const PAD = 22;              // gap between adjacent panels (≥17 needed for labels)
+    const TOP = 42;              // top of usable area (below status bar rule)
+    const BOT = 70;              // bottom margin (above hex strip)
+    const lpH = H - TOP - BOT;  // total usable height
+
+    // Left panel — sequential Y positions (top → bottom, 4 widgets)
+    const pcbH = Math.round(lpH * 0.30);  const pcbY = TOP;
+    const fanH = Math.round(lpH * 0.26);  const fanY = pcbY + pcbH + PAD;
+    const pwrH = Math.max(46, Math.round(lpH * 0.10)); const pwrY = fanY + fanH + PAD;
+    const telY = pwrY + pwrH + PAD;
+    const telH = Math.max(50, H - BOT - telY);
+
+    // Right panel — sequential Y positions (top → bottom, 4 widgets)
+    const emH     = Math.round(lpH * 0.20);  const emY     = TOP;
+    const glbSecH = Math.round(lpH * 0.30);  const glbSecY = emY + emH + PAD;
+    const gcR     = Math.min(RW * 0.42, 100, (glbSecH - 30) / 2);
+    const gcx     = RX + RW * 0.5;
+    const gcy     = glbSecY + 14 + gcR;
+    const arcH    = Math.round(lpH * 0.15);  const arcY    = glbSecY + glbSecH + PAD;
+    const barY    = arcY + arcH + PAD;
+    const barH    = Math.max(40, H - BOT - barY);
+
+    // ── TOP STATUS BAR ────────────────────────────────
+    function initTopBar() {
+      const g = mk('g', {}, svg);
+      const y = 22;
+      tx(LX, y, 'EC-SYS v1.0.4  \u25b8  OPERATIONAL', LA, g);
+      const tEl = tx(W/2, y, '', Object.assign({'text-anchor':'middle'}, LA), g);
+      ['UPLINK','CORE','IO'].forEach((lbl, i) => {
+        const sx = W - 18 - i * 72;
+        tx(sx, y, lbl, Object.assign({'text-anchor':'end'}, LA), g);
+        const dot = mk('circle', {cx:sx+8, cy:y-5, r:3, fill:C(0.9)}, g);
+        setInterval(() => dot.setAttribute('opacity', Math.random() > 0.15 ? '1' : '0'), ri(350, 1100));
+      });
+      mk('line', {x1:0, y1:y+8, x2:W, y2:y+8, stroke:C(0.12), 'stroke-width':'0.5'}, g);
+      function tick() {
+        const d = new Date();
+        const ts = [d.getHours(), d.getMinutes(), d.getSeconds()]
+          .map(n => String(n).padStart(2,'0')).join(':');
+        tEl.textContent = '\u25b8 T+' + ts + '  ADDR:' + rhex(2) + ':' + rhex(2) + ':' + rhex(2) + ' \u25c2';
+      }
+      tick(); setInterval(tick, 1000);
+    }
+
+    // ── PCB SCHEMATIC (left, top) ─────────────────────
+    function initPCB() {
+      if (LW < 110) return;
+      const px = LX, py = pcbY, pw = LPW, ph = pcbH;
+      const g  = mk('g', {}, svg);
+      tx(px, py - 9, 'PCB SCHEMATIC', LA, g);
+      mk('rect', {x:px, y:py, width:pw, height:ph, fill:'none', stroke:C(0.18), 'stroke-width':'1'}, g);
+      const tg = mk('g', {}, g);
+      const CW = Math.round(pw * 0.14);
+      const MX = px + CW + 3, MW = pw - CW - 5;
+
+      function drawDIP(x, y, w, h, nPins, label) {
+        mk('rect', {x, y, width:w, height:h, fill:C(0.05), stroke:C(0.5), 'stroke-width':'1'}, tg);
+        tx(x+w/2, y+h/2+3, label, {'font-family':MONO,'font-size':'7','text-anchor':'middle',fill:C(0.4)}, tg);
+        for (let p = 0; p < nPins; p++) {
+          const pinY = y + (p+1) * h / (nPins+1);
+          mk('rect', {x:x-5, y:pinY-2, width:5, height:4, fill:C(0.35), stroke:C(0.5), 'stroke-width':'0.5'}, tg);
+          mk('rect', {x:x+w, y:pinY-2, width:5, height:4, fill:C(0.35), stroke:C(0.5), 'stroke-width':'0.5'}, tg);
+        }
+        return {cx: x+w/2, cy: y+h/2};
+      }
+      function drawSMD(x, y) {
+        mk('rect', {x, y, width:5, height:4, fill:C(0.08), stroke:C(0.38), 'stroke-width':'0.5'}, tg);
+        mk('rect', {x:x+9, y, width:5, height:4, fill:C(0.08), stroke:C(0.38), 'stroke-width':'0.5'}, tg);
+        mk('rect', {x:x+4, y:y+0.5, width:6, height:3, fill:C(0.04), stroke:C(0.22), 'stroke-width':'0.5'}, tg);
+      }
+      function drawVia(x, y) {
+        mk('circle', {cx:x, cy:y, r:3, fill:'none', stroke:C(0.38), 'stroke-width':'1'}, tg);
+        mk('circle', {cx:x, cy:y, r:1.2, fill:C(0.45)}, tg);
+      }
+      function redraw() {
+        while (tg.firstChild) tg.removeChild(tg.firstChild);
+        for (let i = 0; i < 24; i++) {
+          const ry = py + 4 + i * (ph - 10) / 24;
+          mk('rect', {x:px+2, y:ry, width:CW-4, height:3.5, fill:C(0.1), stroke:C(0.35), 'stroke-width':'0.5'}, tg);
+          mk('circle', {cx:px+4, cy:ry+1.75, r:1.2, fill:C(0.4)}, tg);
+          mk('circle', {cx:px+CW-4, cy:ry+1.75, r:1.2, fill:C(0.4)}, tg);
+        }
+        tx(px+2, py+ph-5, 'J1', {'font-family':MONO,'font-size':'7',fill:C(0.35)}, tg);
+        mk('line', {x1:MX-1, y1:py, x2:MX-1, y2:py+ph, stroke:C(0.2), 'stroke-width':'0.5'}, tg);
+        const smdsPerRow = Math.floor(MW / 16);
+        for (let row = 0; row < 2; row++)
+          for (let i = 0; i < smdsPerRow; i++) drawSMD(MX + i*16, py + 3 + row*13);
+        mk('line', {x1:MX, y1:py+30, x2:px+pw, y2:py+30, stroke:C(0.15), 'stroke-width':'0.5'}, tg);
+        const CA = py + 33, CH2 = ph - 38;
+        if (CH2 < 20) return;
+        const chips = [
+          drawDIP(MX+2,       CA+CH2*0.03, MW*0.28, CH2*0.35, 7, 'U1'),
+          drawDIP(MX+MW*0.35, CA+CH2*0.08, MW*0.22, CH2*0.28, 5, 'IC2'),
+          drawDIP(MX+MW*0.62, CA+CH2*0.04, MW*0.25, CH2*0.33, 7, 'U3'),
+          drawDIP(MX+2,       CA+CH2*0.50, MW*0.32, CH2*0.26, 5, 'IC4'),
+          drawDIP(MX+MW*0.40, CA+CH2*0.50, MW*0.20, CH2*0.24, 5, 'U5'),
+          drawDIP(MX+MW*0.65, CA+CH2*0.50, MW*0.24, CH2*0.28, 6, 'IC6'),
+        ];
+        for (let j = 0; j < ri(10, 18); j++) {
+          const c1 = chips[ri(0, chips.length-1)];
+          const c2 = chips[ri(0, chips.length-1)];
+          if (c1 === c2) continue;
+          const x1 = c1.cx+rnd(-18,18), y1c = c1.cy+rnd(-10,10);
+          const x2 = c2.cx+rnd(-18,18), y2c = c2.cy+rnd(-10,10);
+          const dd = Math.random() > 0.5
+            ? `M${x1.toFixed(0)},${y1c.toFixed(0)} L${x2.toFixed(0)},${y1c.toFixed(0)} L${x2.toFixed(0)},${y2c.toFixed(0)}`
+            : `M${x1.toFixed(0)},${y1c.toFixed(0)} L${x1.toFixed(0)},${y2c.toFixed(0)} L${x2.toFixed(0)},${y2c.toFixed(0)}`;
+          mk('path', {d:dd, fill:'none', stroke:C(0.32), 'stroke-width':'1', 'stroke-linecap':'square'}, tg);
+        }
+        for (let k = 0; k < ri(12, 20); k++) drawVia(MX+rnd(5,MW-5), CA+rnd(5,CH2-5));
+        tx(px+4, py+ph-5, 'SYSTEM MONITOR', Object.assign({'font-size':'7'}, LA), tg);
+      }
+      redraw(); setInterval(redraw, 1800);
+    }
+
+    // ── TACTICAL FAN RADAR (left, radar2-style) ───────
+    function initFanRadar() {
+      if (LW < 110) return;
+      const fw = LPW, fh = fanH;
+      if (fh < 50) return;
+      const fx = LX, fy = fanY;
+      const g  = mk('g', {}, svg);
+      tx(fx, fy - 8, 'TACTICAL SCAN', LA, g);
+      mk('rect', {x:fx, y:fy, width:fw, height:fh, fill:'none', stroke:C(0.18), 'stroke-width':'1'}, g);
+
+      // Background dot grid
+      for (let dgx = fx+5; dgx < fx+fw-2; dgx += 9)
+        for (let dgy = fy+4; dgy < fy+fh-2; dgy += 9)
+          mk('rect', {x:dgx-0.5, y:dgy-0.5, width:1, height:1, fill:C(0.1)}, g);
+
+      // Fan origin: bottom-centre of widget
+      const fcx = fx + fw / 2;
+      const fcy = fy + fh - 3;
+      const maxR = Math.min(fw * 0.47, fh * 0.93);
+
+      // Thin grid lines across the whole widget
+      for (let i = 1; i < 10; i++)
+        mk('line', {x1:fx + i*fw/10, y1:fy+2, x2:fx + i*fw/10, y2:fcy,
+          stroke:C(0.07), 'stroke-width':'0.3'}, g);
+      for (let i = 1; i < 5; i++)
+        mk('line', {x1:fx+2, y1:fy + i*fh/5, x2:fx+fw-2, y2:fy + i*fh/5,
+          stroke:C(0.07), 'stroke-width':'0.3'}, g);
+
+      // Concentric half-arcs (5 rings, sweep-flag=0 = upper half)
+      for (let arc = 1; arc <= 5; arc++) {
+        const r = maxR * arc / 5;
+        mk('path', {
+          d: `M${(fcx-r).toFixed(1)},${fcy} A${r.toFixed(1)},${r.toFixed(1)} 0 0,0 ${(fcx+r).toFixed(1)},${fcy}`,
+          fill: 'none', stroke: C(arc===5 ? 0.45 : 0.18),
+          'stroke-width': arc===5 ? '1.2' : '0.6'
+        }, g);
+      }
+
+      // Radial spokes
+      for (let rl = 0; rl <= 8; rl++) {
+        const ra  = -Math.PI + rl * Math.PI / 8;
+        const ry2 = fcy + maxR * Math.sin(ra);
+        if (ry2 <= fcy + 1)
+          mk('line', {x1:fcx, y1:fcy,
+            x2:(fcx + maxR * Math.cos(ra)).toFixed(1),
+            y2:ry2.toFixed(1),
+            stroke:C(0.18), 'stroke-width':'0.5'}, g);
+      }
+
+      // Target contacts
+      const ctargets = [
+        {angle:rnd(-2.6,-1.9), r:rnd(0.45,0.85)*maxR, shape:'circle'},
+        {angle:rnd(-2.3,-1.5), r:rnd(0.35,0.78)*maxR, shape:'triangle'},
+        {angle:rnd(-1.8,-0.9), r:rnd(0.40,0.82)*maxR, shape:'square'},
+        {angle:rnd(-2.5,-0.5), r:rnd(0.30,0.72)*maxR, shape:'diamond'},
+      ];
+      ctargets.forEach((ct, i) => {
+        const cx = fcx + ct.r * Math.cos(ct.angle);
+        const cy = fcy + ct.r * Math.sin(ct.angle);
+        if (cy > fcy - 4) return;
+        const label = (i % 2 === 0 ? '-' : '+') + ri(1, 12);
+        if (ct.shape === 'circle')
+          mk('circle', {cx:cx.toFixed(1), cy:cy.toFixed(1), r:4,
+            fill:C(0.2), stroke:C(0.9), 'stroke-width':'1.5'}, g);
+        else if (ct.shape === 'triangle')
+          mk('polygon', {points:`${cx},${cy-5} ${cx+4.5},${cy+3} ${cx-4.5},${cy+3}`,
+            fill:'none', stroke:C(0.9), 'stroke-width':'1.2'}, g);
+        else if (ct.shape === 'square')
+          mk('rect', {x:(cx-3.5).toFixed(1), y:(cy-3.5).toFixed(1), width:7, height:7,
+            fill:'none', stroke:C(0.9), 'stroke-width':'1.2'}, g);
+        else
+          mk('polygon', {points:`${cx},${cy-5} ${cx+4.5},${cy} ${cx},${cy+5} ${cx-4.5},${cy}`,
+            fill:'none', stroke:C(0.9), 'stroke-width':'1.2'}, g);
+        tx(cx+7, cy+2, label, {'font-family':MONO,'font-size':'7',fill:C(0.6)}, g);
+      });
+
+      // Sweep line + glow trail
+      const swpLine = mk('line', {x1:fcx, y1:fcy, x2:fcx, y2:fcy-maxR,
+        stroke:C(0.85), 'stroke-width':'1.2'}, g);
+      const swpGlow = mk('path', {fill:C(0.06), stroke:'none'}, g);
+
+      // Data readout in lower-left corner of the fan widget
+      const rdY0 = fy + fh * 0.58;
+      const rdLabels = ['BEARING','RANGE','ALT','TGT'];
+      const rdVals = [
+        () => ri(0,359).toString().padStart(3,'0') + '\u00b0',
+        () => rnd(1.2,99.8).toFixed(1) + 'NM',
+        () => ri(1000,45000) + 'FT',
+        () => ri(3,12) + '',
+      ];
+      const rdEls = rdLabels.map((lbl, i) => {
+        const ly = rdY0 + i * 11;
+        tx(fx+3, ly, lbl, {'font-family':MONO,'font-size':'7',fill:C(0.3)}, g);
+        return tx(fx+52, ly, rdVals[i](), {'font-family':MONO,'font-size':'7',fill:C(0.75)}, g);
+      });
+      setInterval(() => rdEls.forEach((el, i) => { el.textContent = rdVals[i](); }), 1100);
+
+      // Sweep: one-directional left→right, snap reset
+      let swAngle = -Math.PI;
+      function animFan() {
+        swAngle += 0.016;
+        if (swAngle > 0) swAngle = -Math.PI;
+        const trailA = Math.max(-Math.PI, swAngle - 0.32);
+        if (swAngle > -Math.PI + 0.38) {
+          const gx1 = (fcx + maxR * Math.cos(trailA)).toFixed(1);
+          const gy1 = (fcy + maxR * Math.sin(trailA)).toFixed(1);
+          const gx2 = (fcx + maxR * Math.cos(swAngle)).toFixed(1);
+          const gy2 = (fcy + maxR * Math.sin(swAngle)).toFixed(1);
+          swpGlow.setAttribute('d',
+            `M${fcx},${fcy} L${gx1},${gy1} A${maxR.toFixed(1)},${maxR.toFixed(1)} 0 0,1 ${gx2},${gy2} Z`);
+        } else {
+          swpGlow.setAttribute('d', '');
+        }
+        swpLine.setAttribute('x2', (fcx + maxR * Math.cos(swAngle)).toFixed(1));
+        swpLine.setAttribute('y2', (fcy + maxR * Math.sin(swAngle)).toFixed(1));
+        requestAnimationFrame(animFan);
+      }
+      animFan();
+    }
+
+    // ── POWER DISTRIBUTION (left, below fan radar) ────
+    function initPowerDist() {
+      if (LW < 110 || pwrH < 38) return;
+      const g = mk('g', {}, svg);
+      tx(LX, pwrY - 8, 'PWR DISTRIBUTION', LA, g);
+      mk('rect', {x:LX, y:pwrY, width:LPW, height:pwrH, fill:'none', stroke:C(0.15), 'stroke-width':'1'}, g);
+      const CHLABELS = ['MAIN','AUX','SHIELD'];
+      const nCh = Math.max(1, Math.min(CHLABELS.length, Math.floor((pwrH - 6) / 15)));
+      const bars = [], tgts = [];
+      for (let i = 0; i < nCh; i++) {
+        const rowH = Math.floor((pwrH - 6) / nCh);
+        const by2  = pwrY + 3 + i * rowH;
+        const bh2  = rowH - 3;
+        tx(LX+3, by2 + Math.round(bh2 * 0.72), CHLABELS[i], {'font-family':MONO,'font-size':'7',fill:C(0.4)}, g);
+        const maxW = LPW - 44;
+        const t    = rnd(0.3, 0.95);
+        tgts.push(t);
+        bars.push({
+          el: mk('rect', {x:LX+42, y:by2+1, width:(t*maxW).toFixed(1), height:bh2-2,
+            fill:C(0.28), stroke:C(0.5), 'stroke-width':'0.5'}, g),
+          val: t, maxW
+        });
+      }
+      setInterval(() => bars.forEach((_, i) => {
+        tgts[i] = Math.max(0.08, Math.min(1, tgts[i] + rnd(-0.07, 0.07)));
+      }), 550);
+      function animPwr() {
+        bars.forEach((b, i) => {
+          b.val += (tgts[i] - b.val) * 0.07;
+          b.el.setAttribute('width', (b.val * b.maxW).toFixed(1));
+        });
+        requestAnimationFrame(animPwr);
+      }
+      animPwr();
+    }
+
+    // ── SYSTEM TELEMETRY (left, bottom) ───────────────
+    function initDataReadout() {
+      if (LW < 110 || telH < 50) return;
+      const g = mk('g', {}, svg);
+      tx(LX, telY - 9, 'SYSTEM TELEMETRY', LA, g);
+      mk('rect', {x:LX, y:telY, width:LPW, height:telH, fill:'none', stroke:C(0.14), 'stroke-width':'1'}, g);
+      const DATA = [
+        ['FLUX CAPACITOR',  () => rnd(1.18,1.23).toFixed(2)+' GW'],
+        ['DILITHIUM RES',   () => rnd(94.1,99.9).toFixed(1)+'%'],
+        ['MIDI-CHLORIANS',  () => ri(9000,20000).toLocaleString()],
+        ['SHIELD MATRIX',   () => ri(68,100)+'%'],
+        ['WARP DRIVE',      () => rnd(8.4,9.9).toFixed(1)+'c'],
+        ['HEISENBERG COMP', () => 'NOMINAL'],
+        ['IMPROBABILITY',   () => ri(2,9999999)+':1'],
+        ['KOBAYASHI MARU',  () => Math.random()>.85 ? 'ENGAGED' : 'STANDBY'],
+        ['BABEL FISH',      () => 'SYNC'],
+        ['TARGETING CPU',   () => Math.random()>.08 ? 'ONLINE' : 'OFFLINE'],
+      ];
+      const LH2 = 19, rows = [];
+      const maxRows = Math.floor((telH - 10) / LH2);
+      for (let i = 0; i < Math.min(maxRows, DATA.length); i++) {
+        const ry = telY + 14 + i * LH2;
+        mk('line', {x1:LX+2, y1:ry+3, x2:LX+LPW-2, y2:ry+3, stroke:C(0.1), 'stroke-width':'0.5'}, g);
+        tx(LX+5, ry, DATA[i][0], {'font-family':MONO,'font-size':'9',fill:C(0.45)}, g);
+        const vel = tx(LX+LPW-5, ry, DATA[i][1](),
+          {'font-family':MONO,'font-size':'9',fill:C(0.9),'text-anchor':'end'}, g);
+        rows.push({el:vel, fn:DATA[i][1]});
+      }
+      setInterval(() => { const r=rows[ri(0,rows.length-1)]; r.el.textContent=r.fn(); }, 480);
+    }
+
+    // ── ENERGY MATRIX (right, top) ────────────────────
+    function initEnergyMatrix() {
+      if (RW < 80 || emH < 40) return;
+      const g    = mk('g', {}, svg);
+      tx(RX, emY - 2, 'ENERGY MATRIX', LA, g);
+      mk('rect', {x:RX, y:emY, width:RW, height:emH, fill:'none', stroke:C(0.15), 'stroke-width':'1'}, g);
+      const CS=9, GAP=2;
+      const cols = Math.floor((RW-4) / (CS+GAP));
+      const rows = Math.floor((emH-4) / (CS+GAP));
+      const cells = [];
+      for (let r=0; r<rows; r++) {
+        for (let c=0; c<cols; c++) {
+          const on = Math.random() > 0.52;
+          cells.push({
+            el: mk('rect', {x:RX+3+c*(CS+GAP), y:emY+3+r*(CS+GAP),
+              width:CS, height:CS, fill:on?C(0.32):C(0.05), stroke:C(0.2), 'stroke-width':'0.5'}, g),
+            on
+          });
+        }
+      }
+      setInterval(() => {
+        for (let i=0; i<ri(3,9); i++) {
+          const cell = cells[ri(0,cells.length-1)];
+          cell.on = !cell.on;
+          cell.el.setAttribute('fill', cell.on ? C(0.32) : C(0.05));
+        }
+      }, 110);
+    }
+
+    // ── WIREFRAME GLOBE (right) ───────────────────────
+    function initGlobe() {
+      if (RW < 100 || gcR < 20) return;
+      const R     = gcR;
+      const ALPHA = 0.22;
+      const cosA  = Math.cos(ALPHA), sinA = Math.sin(ALPHA);
+      const g     = mk('g', {}, svg);
+      tx(gcx - R, glbSecY + 9, 'GLOBAL UPLINK', LA, g);
+      mk('circle', {cx:gcx, cy:gcy, r:R, fill:'none', stroke:C(0.6), 'stroke-width':'1.5'}, g);
+      const N_LAT = 12;
+      for (let i = 1; i < N_LAT; i++) {
+        const phi = (i / N_LAT - 0.5) * Math.PI;
+        const cy2 = gcy - R * cosA * Math.sin(phi);
+        const rx2 = R * Math.cos(phi);
+        const ry2 = rx2 * sinA;
+        if (rx2 > 3)
+          mk('ellipse', {cx:gcx, cy:cy2, rx:rx2, ry:ry2,
+            fill:'none', stroke:C(0.35), 'stroke-width':'0.8'}, g);
+      }
+      const N_LON=14, N_STEPS=40;
+      const phiArr = Array.from({length:N_STEPS+1}, (_, j) => {
+        const phi = (j/N_STEPS - 0.5) * Math.PI;
+        return {c: Math.cos(phi), s: Math.sin(phi)};
+      });
+      const lonPaths = Array.from({length:N_LON}, () =>
+        mk('path', {fill:'none', stroke:C(0.45), 'stroke-width':'0.9'}, g));
+      const PLACES = ['SHOFSNIF','NEXAR-7','DELTA-4','SECTOR-9','GRID-REF','BEACON-3'];
+      const coordEl = tx(gcx-R, gcy+R+14, 'SHOFSNIF  6857,631', LA, g);
+      setInterval(() => {
+        coordEl.textContent = PLACES[ri(0,PLACES.length-1)]+'  '+ri(1000,9999)+','+ri(100,999);
+      }, 2200);
+      let angle = 0;
+      function animGlobe() {
+        angle += 0.007;
+        for (let i=0; i<N_LON; i++) {
+          const lambda = i * Math.PI / N_LON + angle;
+          const sinL = Math.sin(lambda), cosL = Math.cos(lambda);
+          let dd = '';
+          for (let j=0; j<=N_STEPS; j++) {
+            const p = phiArr[j];
+            const sx2 = R * p.c * sinL;
+            const sy2 = -R * (cosA * p.s + sinA * p.c * cosL);
+            dd += (j===0?'M':'L') + (gcx+sx2).toFixed(1)+','+(gcy+sy2).toFixed(1);
+          }
+          lonPaths[i].setAttribute('d', dd);
+          lonPaths[i].setAttribute('opacity', cosL>0 ? '0.65' : '0.22');
+        }
+        requestAnimationFrame(animGlobe);
+      }
+      animGlobe();
+    }
+
+    // ── ARC INTERCEPT SCAN (right, globe↔bars) ────────
+    function initScanArc() {
+      if (RW < 80 || arcH < 40) return;
+      const acx = RX + RW / 2;
+      const acy = arcY + arcH - 2;          // origin at widget bottom
+      const AR  = Math.min(RW * 0.44, arcH * 0.88);  // arcs stay inside widget
+      const g   = mk('g', {}, svg);
+      tx(RX, arcY - 8, 'INTERCEPT PATH', LA, g);
+      mk('rect', {x:RX, y:arcY, width:RW, height:arcH, fill:'none', stroke:C(0.15), 'stroke-width':'1'}, g);
+      for (let i=1; i<=3; i++) {
+        const r = AR*i/3;
+        mk('path', {
+          d: `M${(acx-r).toFixed(1)},${acy.toFixed(1)} A${r.toFixed(1)},${r.toFixed(1)} 0 0,0 ${(acx+r).toFixed(1)},${acy.toFixed(1)}`,
+          fill:'none', stroke:C(0.25), 'stroke-width':'0.7'
+        }, g);
+      }
+      for (let j=0; j<=6; j++) {
+        const a = -Math.PI + j*Math.PI/6;
+        mk('line', {x1:acx, y1:acy,
+          x2:(acx+AR*Math.cos(a)).toFixed(1), y2:(acy+AR*Math.sin(a)).toFixed(1),
+          stroke:C(0.12), 'stroke-width':'0.5'}, g);
+      }
+      const shapes = [
+        {angle:rnd(-2.7,-0.4), r:rnd(0.35,0.82)*AR, spd:0.003,
+         el:mk('rect',{x:-2.5,y:-2.5,width:5,height:5,fill:'none',stroke:C(0.9),'stroke-width':'1'},g),
+         lbl:tx(0,0,'\u25a1 -7',{'font-family':MONO,'font-size':'7',fill:C(0.55)},g)},
+        {angle:rnd(-2.7,-0.4), r:rnd(0.35,0.82)*AR, spd:-0.004,
+         el:mk('polygon',{points:'0,-5 4,3 -4,3',fill:'none',stroke:C(0.9),'stroke-width':'1'},g),
+         lbl:tx(0,0,'\u25b3 -3',{'font-family':MONO,'font-size':'7',fill:C(0.55)},g)},
+        {angle:rnd(-2.7,-0.4), r:rnd(0.35,0.82)*AR, spd:0.0025,
+         el:mk('circle',{cx:0,cy:0,r:4,fill:C(0.12),stroke:C(0.9),'stroke-width':'1.2'},g),
+         lbl:tx(0,0,'\u25c9 +7',{'font-family':MONO,'font-size':'7',fill:C(0.55)},g)},
+      ];
+      function animArc() {
+        shapes.forEach(s => {
+          s.angle += s.spd;
+          if (s.angle < -Math.PI+0.1 || s.angle > -0.1) s.spd *= -1;
+          const tx2 = (acx + s.r * Math.cos(s.angle)).toFixed(1);
+          const ty2 = (acy + s.r * Math.sin(s.angle)).toFixed(1);
+          s.el.setAttribute('transform', `translate(${tx2},${ty2})`);
+          s.lbl.setAttribute('x', String(+tx2+6));
+          s.lbl.setAttribute('y', String(+ty2-2));
+        });
+        requestAnimationFrame(animArc);
+      }
+      animArc();
+    }
+
+    // ── SIGNAL ANALYSIS / BAR CHARTS (right, bottom) ──
+    function initBars() {
+      if (RW < 80 || barH < 40) return;
+      const g = mk('g', {}, svg);
+      tx(RX, barY - 9, 'SIGNAL ANALYSIS', LA, g);
+      mk('rect', {x:RX, y:barY, width:RW, height:barH, fill:'none', stroke:C(0.14), 'stroke-width':'1'}, g);
+      const N    = Math.max(6, Math.floor(RW / 16));
+      const barW = (RW - 10) / N;
+      const rects=[], targets=[], vals=[];
+      for (let i=0; i<N; i++) {
+        const t = rnd(0.1, 0.9);
+        targets.push(t); vals.push(t);
+        rects.push(mk('rect', {
+          x:RX+5+i*barW, y:barY+barH-t*(barH-4), width:barW-2, height:t*(barH-4),
+          fill:C(0.18), stroke:C(0.6), 'stroke-width':'0.5'
+        }, g));
+      }
+      mk('line', {x1:RX, y1:barY+barH, x2:RX+RW, y2:barY+barH, stroke:C(0.3), 'stroke-width':'1'}, g);
+      setInterval(() => { targets[ri(0,N-1)] = rnd(0.04, 0.96); }, 160);
+      function animBars() {
+        for (let i=0; i<N; i++) {
+          vals[i] += (targets[i]-vals[i]) * 0.11;
+          const h = Math.max(2, vals[i] * (barH-4));
+          rects[i].setAttribute('y', barY+barH-h);
+          rects[i].setAttribute('height', h);
+        }
+        requestAnimationFrame(animBars);
+      }
+      animBars();
+    }
+
+    // ── MEMORY ADDR DUMP (bottom strip) ──────────────
+    function initHexBar() {
+      const g  = mk('g', {}, svg);
+      const by = H - 54;
+      tx(W/2, by-10, '\u25aa  MEMORY ADDR DUMP  \u25aa',
+        Object.assign({'text-anchor':'middle'}, LA), g);
+      mk('line', {x1:0, y1:by-14, x2:W, y2:by-14, stroke:C(0.12), 'stroke-width':'0.5'}, g);
+      const BW=82, BH=30, GAP=5;
+      const n  = Math.floor((W-20)/(BW+GAP));
+      const sx = (W - (n*(BW+GAP)-GAP)) / 2;
+      const boxes = [];
+      for (let i=0; i<n; i++) {
+        const bx = sx + i*(BW+GAP);
+        mk('rect', {x:bx, y:by, width:BW, height:BH, fill:C(0.04), stroke:C(0.28), 'stroke-width':'1'}, g);
+        const t = tx(bx+BW/2, by+19, '0x'+rhex(3),
+          {'font-family':MONO,'font-size':'10',fill:C(0.9),'text-anchor':'middle'}, g);
+        boxes.push({t, on: Math.random() > 0.3});
+      }
+      setInterval(() => {
+        boxes.forEach(b => {
+          if (Math.random() < 0.22) { b.t.textContent='0x'+rhex(3); b.on=!b.on; }
+          b.t.setAttribute('opacity', b.on ? '1' : '0.18');
+        });
+      }, 260);
+    }
+
+    // ── CIRCULAR RADAR (centre-bottom) ───────────────
+    function initRadar() {
+      const R   = Math.min(78, H * 0.086);
+      const rcx = W / 2;
+      const rcy = H - 54 - R - 14;
+      if (rcy - R < H / 2 + 150) return;
+      const g = mk('g', {}, svg);
+      tx(rcx, rcy-R-12, 'PROXIMITY SCAN', Object.assign({'text-anchor':'middle'}, LA), g);
+      for (let i=1; i<=5; i++)
+        mk('circle', {cx:rcx, cy:rcy, r:R*i/5, fill:'none',
+          stroke:i===5?C(0.5):C(0.18), 'stroke-width':i===5?'1.2':'0.6'}, g);
+      for (let i=0; i<12; i++) {
+        const a = i*Math.PI/6;
+        mk('line', {x1:rcx, y1:rcy,
+          x2:(rcx+R*Math.cos(a)).toFixed(1), y2:(rcy+R*Math.sin(a)).toFixed(1),
+          stroke:C(0.18), 'stroke-width':'0.5'}, g);
+      }
+      ['000','030','060','090','120','150','180','210','240','270','300','330'].forEach((lbl,i) => {
+        const a = i*Math.PI/6 - Math.PI/2;
+        tx((rcx+(R+10)*Math.cos(a)).toFixed(1), (rcy+(R+10)*Math.sin(a)+3).toFixed(1), lbl,
+          {'font-family':MONO,'font-size':'6','text-anchor':'middle',fill:C(0.45)}, g);
+      });
+      mk('circle', {cx:rcx, cy:rcy, r:2, fill:C(0.9)}, g);
+      const glowS  = mk('path', {fill:C(0.07),stroke:'none'}, g);
+      const sweepS = mk('path', {fill:C(0.28),stroke:'none'}, g);
+      const sweepE = mk('line', {x1:rcx,y1:rcy,x2:rcx,y2:rcy,stroke:C(0.9),'stroke-width':'1.5'}, g);
+      function sec(r,a1,a2) {
+        const x1=(rcx+r*Math.cos(a1)).toFixed(1), y1=(rcy+r*Math.sin(a1)).toFixed(1);
+        const x2=(rcx+r*Math.cos(a2)).toFixed(1), y2=(rcy+r*Math.sin(a2)).toFixed(1);
+        return `M${rcx},${rcy} L${x1},${y1} A${r},${r} 0 0,1 ${x2},${y2} Z`;
+      }
+      const blips = Array.from({length:6}, () => ({
+        r:rnd(0.25,0.88)*R, theta:rnd(0,Math.PI*2), alpha:0,
+        el:mk('rect',{x:0,y:0,width:4,height:4,fill:C(0.9),opacity:0},g)
+      }));
+      let swA = -Math.PI/2;
+      function animR() {
+        swA += 0.018;
+        const TR = Math.PI*0.38;
+        glowS.setAttribute('d', sec(R*0.94, swA-TR, swA));
+        sweepS.setAttribute('d', sec(R*0.94, swA-0.12, swA));
+        sweepE.setAttribute('x2', (rcx+R*0.94*Math.cos(swA)).toFixed(1));
+        sweepE.setAttribute('y2', (rcy+R*0.94*Math.sin(swA)).toFixed(1));
+        blips.forEach(b => {
+          const nd = ((b.theta-swA)%(Math.PI*2)+Math.PI*2)%(Math.PI*2);
+          if (nd < 0.06) b.alpha = 1.0;
+          b.alpha = Math.max(0, b.alpha-0.003);
+          b.el.setAttribute('x', (rcx+b.r*Math.cos(b.theta)-2).toFixed(1));
+          b.el.setAttribute('y', (rcy+b.r*Math.sin(b.theta)-2).toFixed(1));
+          b.el.setAttribute('opacity', b.alpha.toFixed(3));
+        });
+        requestAnimationFrame(animR);
+      }
+      animR();
+    }
+
+    // ── SIGNAL SCOPE (centre, below terminal) ─────────
+    function initScope() {
+      const heroTop = H/2 - 160;
+      const termEnd = 226;
+      if (heroTop - termEnd < 40) return;
+      const sw = 340, sh = 38;
+      const sx2 = Math.round(W/2 - sw/2);
+      const sy2 = Math.round(termEnd + (heroTop - termEnd - sh)/2);
+      const g   = mk('g', {}, svg);
+      tx(sx2, sy2-8, 'SIGNAL MONITOR', LA, g);
+      mk('rect', {x:sx2,y:sy2,width:sw,height:sh,fill:'none',stroke:C(0.15),'stroke-width':'1'}, g);
+      for (let i=1; i<3; i++)
+        mk('line', {x1:sx2,y1:sy2+sh*i/3,x2:sx2+sw,y2:sy2+sh*i/3,stroke:C(0.07),'stroke-width':'0.5'}, g);
+      const N = 82;
+      const data = Array.from({length:N}, () => rnd(0.15,0.85));
+      const wave = mk('polyline', {fill:'none',stroke:C(0.7),'stroke-width':'1.2','stroke-linejoin':'round'}, g);
+      setInterval(() => {
+        data.shift();
+        data.push(Math.max(0.02, Math.min(0.98, data[data.length-1]+rnd(-0.11,0.11))));
+        let pts='';
+        for (let i=0; i<N; i++)
+          pts += `${(sx2+i*sw/(N-1)).toFixed(1)},${(sy2+sh*(1-data[i])).toFixed(1)} `;
+        wave.setAttribute('points', pts);
+      }, 35);
+    }
+
+    // ── TERMINAL BOOT SEQUENCE (top centre) ──────────
+    function initTerminal() {
+      const g = document.getElementById('terminal-lines');
+      const LINES = [
+        '> BOOT SEQUENCE INITIATED',
+        '> LOADING CORE MODULES ......... [OK]',
+        '> MEMORY INTEGRITY CHECK ....... [OK]',
+        '> NETWORK INTERFACE UP ......... [OK]',
+        '> EXPLOSIVE CONCEPTS v1.0 ...... [OK]',
+        '',
+        '> INITIALIZING SYSTEM',
+        '> PLEASE STAND BY',
+      ];
+      const LH=22, CM=22;
+      let cursorIv=null;
+      function type(el, text, cb) {
+        let i=0;
+        const iv=setInterval(() => {
+          el.textContent=text.slice(0,++i);
+          if (i>=text.length) { clearInterval(iv); if (cb) cb(); }
+        }, CM);
+      }
+      function startCursor(el, text) {
+        let on=true;
+        cursorIv=setInterval(() => { el.textContent=text+(on?'_':'\u00a0'); on=!on; }, 530);
+      }
+      function fadeOut() {
+        if (cursorIv) { clearInterval(cursorIv); cursorIv=null; }
+        g.style.transition='opacity 1.2s'; g.style.opacity='0';
+        setTimeout(() => {
+          while (g.firstChild) g.removeChild(g.firstChild);
+          g.style.transition=''; g.style.opacity='1'; run();
+        }, 1400);
+      }
+      function run() {
+        const sx=Math.round(W/2-171), sy=50;
+        let idx=0;
+        function next() {
+          if (idx>=LINES.length) {
+            const last=g.lastElementChild;
+            if (last) startCursor(last, LINES[LINES.length-1]);
+            setTimeout(fadeOut, 4500);
+            return;
+          }
+          const el=mk('text',{x:sx,y:sy+idx*LH},g);
+          const text=LINES[idx++];
+          if (!text) { setTimeout(next,280); return; }
+          type(el, text, () => setTimeout(next,140));
+        }
+        next();
+      }
+      run();
+    }
+
+    // ── BOOT ─────────────────────────────────────────
+    document.fonts.ready.then(() => {
+      initTopBar();
+      initPCB();
+      initFanRadar();
+      initPowerDist();
+      initDataReadout();
+      initEnergyMatrix();
+      initGlobe();
+      initScanArc();
+      initBars();
+      initHexBar();
+      initRadar();
+      initScope();
+      initTerminal();
+    });
+  })();
+  </script>
 </body>
 </html>
