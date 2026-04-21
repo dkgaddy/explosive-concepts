@@ -9,15 +9,15 @@
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     :root {
-      --cream:   #d6ddb5;
-      --tan:     #b0bc88;
-      --brown:   #3a4a20;
-      --brown-light: #6a7f42;
-      --text:    #252e12;
-      --muted:   rgba(37,46,18,0.60);
-      --btn-bg:  rgba(255,255,255,0.58);
-      --btn-border: rgba(58,74,32,0.18);
-      --btn-hover:  rgba(255,255,255,0.80);
+      --cream:   #132d5e;
+      --tan:     #0e2347;
+      --brown:   #e8c040;
+      --brown-light: #c9a030;
+      --text:    #e8eeff;
+      --muted:   rgba(232,238,255,0.55);
+      --btn-bg:  rgba(255,255,255,0.07);
+      --btn-border: rgba(232,192,64,0.20);
+      --btn-hover:  rgba(255,255,255,0.13);
     }
 
     html, body {
@@ -47,7 +47,7 @@
       display: block;
     }
 
-    /* fade photo into olive below */
+    /* fade photo into navy below */
     .hero::after {
       content: '';
       position: absolute;
@@ -57,7 +57,7 @@
       height: 55%;
       background: linear-gradient(to bottom,
         transparent 0%,
-        rgba(214,221,181,0.55) 40%,
+        rgba(19,45,94,0.65) 40%,
         var(--cream) 100%);
       pointer-events: none;
     }
@@ -124,14 +124,14 @@
       color: var(--text);
       backdrop-filter: blur(8px);
       -webkit-backdrop-filter: blur(8px);
-      box-shadow: 0 2px 12px rgba(58,74,32,0.10), 0 1px 3px rgba(58,74,32,0.07);
+      box-shadow: 0 2px 12px rgba(0,0,0,0.25), 0 1px 3px rgba(0,0,0,0.15);
       transition: background 0.2s, transform 0.15s, box-shadow 0.2s;
     }
 
     .link-btn:hover, .link-btn:active {
       background: var(--btn-hover);
       transform: translateY(-2px);
-      box-shadow: 0 6px 20px rgba(58,74,32,0.16), 0 2px 6px rgba(58,74,32,0.10);
+      box-shadow: 0 6px 20px rgba(0,0,0,0.30), 0 2px 6px rgba(0,0,0,0.18);
     }
 
     .link-icon {
@@ -145,11 +145,11 @@
       font-size: 20px;
     }
 
-    .icon-patria    { background: #3a4a20; }
-    .icon-tar       { background: #132d5e; }
-    .icon-theonauts { background: #4a5a28; }
-    .icon-theopop   { background: #2e4228; }
-    .icon-reads     { background: #5a6a30; }
+    .icon-patria    { background: rgba(0,0,0,0.30); }
+    .icon-tar       { background: rgba(0,0,0,0.30); }
+    .icon-theonauts { background: rgba(0,0,0,0.30); }
+    .icon-theopop   { background: rgba(0,0,0,0.30); }
+    .icon-reads     { background: rgba(0,0,0,0.30); }
 
     .link-label {
       font-size: 15px;
@@ -179,7 +179,7 @@
 
   <!-- Photo -->
   <div class="hero">
-    <img src="sunsetDavid.jpg" alt="David Gaddy" class="hero-img">
+    <img src="coffeeDavid.jpg" alt="David Gaddy" class="hero-img">
   </div>
 
   <!-- Content -->
