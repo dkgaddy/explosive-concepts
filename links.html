@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>@dkgaddy</title>
+  <link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,600;1,400&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --cream:   #d6ddb5;
+      --tan:     #b0bc88;
+      --brown:   #3a4a20;
+      --brown-light: #6a7f42;
+      --text:    #252e12;
+      --muted:   rgba(37,46,18,0.60);
+      --btn-bg:  rgba(255,255,255,0.58);
+      --btn-border: rgba(58,74,32,0.18);
+      --btn-hover:  rgba(255,255,255,0.80);
+    }
+
+    html, body {
+      min-height: 100%;
+      background: var(--cream);
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    /* ── PHOTO HERO ── */
+    .hero {
+      width: 100%;
+      max-width: 480px;
+      position: relative;
+    }
+
+    .hero-img {
+      width: 100%;
+      aspect-ratio: 3 / 3.2;
+      object-fit: cover;
+      object-position: center 15%;
+      display: block;
+    }
+
+    /* fade photo into olive below */
+    .hero::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 55%;
+      background: linear-gradient(to bottom,
+        transparent 0%,
+        rgba(214,221,181,0.55) 40%,
+        var(--cream) 100%);
+      pointer-events: none;
+    }
+
+    /* ── CARD (sits over hero bottom, then continues below) ── */
+    .card {
+      width: 100%;
+      max-width: 480px;
+      padding: 0 24px 48px;
+      margin-top: -80px;
+      position: relative;
+      z-index: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .handle {
+      font-family: 'Lora', serif;
+      font-size: 22px;
+      font-weight: 600;
+      color: var(--brown);
+      letter-spacing: 0.02em;
+      margin-bottom: 16px;
+      text-shadow: 0 1px 8px rgba(245,234,216,0.9);
+    }
+
+    .blurb {
+      font-size: 14.5px;
+      font-style: italic;
+      font-family: 'Lora', serif;
+      color: var(--muted);
+      text-align: center;
+      line-height: 1.75;
+      max-width: 360px;
+      margin-bottom: 32px;
+    }
+
+    /* ── DIVIDER ── */
+    .divider {
+      width: 48px;
+      height: 2px;
+      background: linear-gradient(to right, transparent, var(--tan), transparent);
+      margin-bottom: 28px;
+    }
+
+    /* ── LINKS ── */
+    .links {
+      display: flex;
+      flex-direction: column;
+      gap: 13px;
+      width: 100%;
+    }
+
+    .link-btn {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      background: var(--btn-bg);
+      border: 1px solid var(--btn-border);
+      border-radius: 14px;
+      padding: 15px 20px;
+      text-decoration: none;
+      color: var(--text);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      box-shadow: 0 2px 12px rgba(58,74,32,0.10), 0 1px 3px rgba(58,74,32,0.07);
+      transition: background 0.2s, transform 0.15s, box-shadow 0.2s;
+    }
+
+    .link-btn:hover, .link-btn:active {
+      background: var(--btn-hover);
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(58,74,32,0.16), 0 2px 6px rgba(58,74,32,0.10);
+    }
+
+    .link-icon {
+      width: 38px;
+      height: 38px;
+      border-radius: 10px;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+    }
+
+    .icon-patria    { background: #3a4a20; }
+    .icon-tar       { background: #132d5e; }
+    .icon-theonauts { background: #4a5a28; }
+    .icon-theopop   { background: #2e4228; }
+    .icon-reads     { background: #5a6a30; }
+
+    .link-label {
+      font-size: 15px;
+      font-weight: 500;
+      line-height: 1.3;
+      flex: 1;
+    }
+
+    .link-arrow {
+      color: var(--brown-light);
+      font-size: 16px;
+      opacity: 0.6;
+    }
+
+    /* ── FOOTER ── */
+    .footer {
+      max-width: 480px;
+      width: 100%;
+      text-align: center;
+      padding: 0 24px 32px;
+      font-size: 12px;
+      color: var(--muted);
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Photo -->
+  <div class="hero">
+    <img src="sunsetDavid.jpg" alt="David Gaddy" class="hero-img">
+  </div>
+
+  <!-- Content -->
+  <div class="card">
+
+    <p class="handle">@dkgaddy</p>
+
+    <p class="blurb">
+      Hey I'm David. I build things, study things, and revel in God's creation.
+      Here are a few things that are made by me and some things I am involved in.
+      Check em out!
+    </p>
+
+    <div class="divider"></div>
+
+    <div class="links">
+
+      <a href="https://www.explosiveconcepts.com/patria.html" class="link-btn" target="_blank" rel="noopener">
+        <div class="link-icon icon-patria">🌿</div>
+        <span class="link-label">Patria — People of the Bible App</span>
+        <span class="link-arrow">›</span>
+      </a>
+
+      <a href="https://www.explosiveconcepts.com/thataintreal.html" class="link-btn" target="_blank" rel="noopener">
+        <div class="link-icon icon-tar">🔍</div>
+        <span class="link-label">That Ain't Real — AI Image Detector</span>
+        <span class="link-arrow">›</span>
+      </a>
+
+      <a href="https://theonauts.podbean.com" class="link-btn" target="_blank" rel="noopener">
+        <div class="link-icon icon-theonauts">🎙️</div>
+        <span class="link-label">The Theonauts Podcast</span>
+        <span class="link-arrow">›</span>
+      </a>
+
+      <a href="https://theopop.podbean.com" class="link-btn" target="_blank" rel="noopener">
+        <div class="link-icon icon-theopop">🎧</div>
+        <span class="link-label">The Theopop Podcast</span>
+        <span class="link-arrow">›</span>
+      </a>
+
+      <a href="https://www.goodreads.com/author/show/904896.David_Gaddy" class="link-btn" target="_blank" rel="noopener">
+        <div class="link-icon icon-reads">📖</div>
+        <span class="link-label">I like to read and write too&nbsp;😉</span>
+        <span class="link-arrow">›</span>
+      </a>
+
+    </div>
+  </div>
+
+  <div class="footer">
+    © 2026 David Gaddy
+  </div>
+
+</body>
+</html>
